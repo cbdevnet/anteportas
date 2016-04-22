@@ -14,6 +14,7 @@ integrated into some much larger accounting system).
 * iptables
 * ipset and the iptables ipset module
 * HTTP daemon with CGI
+* `bash` or `ash`
 
 ## On you
 * Some confidence with iptables
@@ -23,12 +24,12 @@ integrated into some much larger accounting system).
 
 # Setup
 
-1. Create `active` ipset using
-	```ipset create active hash:mac counters timeout 900```
+1. Create the `active` ipset using
+	`ipset create active hash:mac counters timeout 900`
 
 2. Turn on packet forwarding with
-	```sysctl net.ipv4.ip_forward``` and
-	```net.ipv6.conf.all.forwarding=1```
+	`sysctl net.ipv4.ip_forward=1` and
+	`sysctl net.ipv6.conf.all.forwarding=1`
 
 3. Check portal.rules for applicability to your setup and customize if needed
 
@@ -43,10 +44,11 @@ integrated into some much larger accounting system).
 	page.
 
 6. Edit`process_login`
+	* Configure the shell to run the script (`ash` or `bash` should do)
 	* Configure `check()` to match your authentication method
 	* Configure the `REDIRECT_*` variables to point to something sensible
 
 # Testing
 
 To see the list of clients currently able to traverse the router, run
-	```ipset list active```
+	`ipset list active`
