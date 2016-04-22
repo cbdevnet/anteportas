@@ -1,0 +1,112 @@
+#!/bin/ash
+
+REDIRECT_SUCCESS="http://192.168.1.1/success.html"
+REDIRECT_FAILURE="http://192.168.1.1/"
+
+# Authenticate user
+# You might want to test the user against your database or whitelist at this point
+check(){
+	if [ "$1" = "cbdev" ] && [ "$2" = "cbcdn" ]; then
+		return 0
+	fi
+	return 1
+}
+
+# Print an information site and redirect to the client
+render(){
+	printf "Content-type: text/html\n\n"
+
+	printf "<html><head>"
+	echo '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">'
+	printf "<meta http-equiv=\"refresh\" content=\"10; url=%s\">" "$1"
+	printf "</head><body>"
+	printf "%s<br>" "$2"
+	printf "Please continue to <a href=\"%s\">%s</a>" "$1" "$1"
+	printf "</body></html>"
+}
+
+# Query MAC address of authenticating client
+get_mac(){
+	MAC=$(ip neighbour show to "$1" | cut -d " " -f 4,5)
+	if [[ ! "$MAC" = lladr* ]]; then
+		MAC=${MAC#lladdr }
+	else
+		MAC="invalid"
+	fi
+}
+
+# Add a MAC address to the active client set
+allow_mac(){
+	ipset add active "$1"
+}
+
+# Helper to read POST parameters
+read_post(){
+	if [ "$CONTENT_TYPE" != "application/x-www-form-urlencoded" ]; then
+		return 1
+	fi
+
+	if [ -z "$QUERY_STRING_POST" ] && [ "$REQUEST_METHOD" = "POST" ] && [ ! -z "$CONTENT_LENGTH" ]; then
+		read -n "$CONTENT_LENGTH" QUERY_STRING_POST
+		return 0
+	fi
+	return 1
+}
+
+# Read POST parameters or fail
+if ! read_post; then
+	render "$REDIRECT_FAILURE" "Failed to read data"
+	exit 0
+fi
+
+# Sanity check
+if [ -z "$QUERY_STRING_POST" ] || [ -z "$REMOTE_ADDR" ] ; then
+	render "$REDIRECT_FAILURE" "Missing vital parameters"
+	exit 0
+fi
+
+ORIGINAL_IFS="$IFS"
+
+# Parse POST argument string into arguments
+IFS="${IFS}&"
+set "$QUERY_STRING_POST"
+arguments="$*"
+IFS="$ORIGINAL_IFS"
+
+username=""
+password=""
+checkmark=""
+
+# Iterate over arguments and examine each one
+for arg in $arguments; do
+	IFS="${IFS}="
+	set "$arg"
+	IFS="$ORIGINAL_IFS"
+
+	case "$1" in
+		user)	username="$2"
+			;;
+		pass)	password="$2"
+			;;
+		check)	checkmark="$2"
+			;;
+	esac
+done
+
+# Authenticate the user
+if check "$username" "$password" "$checkmark"; then
+	render "$REDIRECT_SUCCESS" "Login successful"
+else
+	render "$REDIRECT_FAILURE" "Login failed"
+fi
+
+# Add remote MAC address to active client set
+get_mac "$REMOTE_ADDR"
+if [ "$MAC" = "invalid" ]; then
+	render "$REDIRECT_FAILURE" "Failed to read identifier"
+	exit 0
+fi
+
+allow_mac "$MAC"
+
+exit 0
