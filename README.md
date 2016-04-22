@@ -39,11 +39,11 @@ integrated into some much larger accounting system).
 5. Copy `process_login` from wwwroot/cgi-bin/ to a location where it can be executed
 	using CGI.
 
-5a. Optionally, also copy index.htm and failure.html for use as login panel (they're
+6. Optionally, also copy index.htm and failure.html for use as login panel (they're
 	not pretty, though). They may be useful as an example on how to create a login
 	page.
 
-6. Edit`process_login`
+7. Edit`process_login`
 	* Configure the shell to run the script (`ash` or `bash` should do)
 	* Configure `check()` to match your authentication method
 	* Configure the `REDIRECT_*` variables to point to something sensible
